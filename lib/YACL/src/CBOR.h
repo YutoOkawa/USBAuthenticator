@@ -221,6 +221,10 @@ class CBOR
 		bool add(int32_t value);
 		bool add(int64_t value);
 
+		// ambigousエラーを取り除くために追加
+		bool add(unsigned int value);
+		bool add(int);
+
 		//! Add a CBOR FLOAT32 at the end of the buffer.
 		/*!
 		 * \param value The 32-bit floating point number to encode.
