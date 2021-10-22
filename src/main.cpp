@@ -1,6 +1,8 @@
 #include <Arduino.h>
 #include "USBAuthenticator.h"
 
+void sendTest();
+
 USBAuthenticator authenticator;
 HID_REPORT hidReceive;
 HID_REPORT hidSend;
@@ -12,6 +14,12 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
+  sendTest();
+  delay(1);
+}
+
+/* Send Test function */
+void sendTest() {
   bool readResult = authenticator.read(&hidReceive);
   if (readResult) {
     Serial.println("AA!!");
@@ -27,5 +35,4 @@ void loop() {
       Serial.println("failed...");
     }
   }
-  delay(1);
 }
