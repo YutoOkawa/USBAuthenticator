@@ -12,6 +12,24 @@ Response::~Response() {
     // delete[] responseData;
 }
 
+void Response::ResponseSerialDebug() {
+    Serial.print("Response Status:");
+    Serial.println(String(this->status, HEX));
+    Serial.print("Response Length:");
+    Serial.println(this->length);
+
+    Serial.print("Response Data:");
+    for (size_t i = 0; i < this->length; i++)
+    {
+        /* sprintfが使えないため代用 */
+        if (this->responseData[i] < (const uint8_t)0x10) {
+            Serial.print("0");
+        }
+        Serial.print(String(this->responseData[i], HEX));
+    }
+    Serial.println("");
+}
+
 /* ----------------------StatusCodeParam---------------------- */
 /** @brief Indicates successful response. (0x00) */
 const int StatusCodeParam::CTAP1_ERR_SUCCESS = 0x00;

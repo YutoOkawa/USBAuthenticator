@@ -219,3 +219,127 @@ const uint8_t *USBAuthenticator::configuration_desc(uint8_t index) {
     memcpy(_configuration_descriptor, configuration_descriptor_temp, sizeof(_configuration_descriptor));
     return _configuration_descriptor;
 }
+
+/**
+ * @brief 入力パラメータをパースする
+ * 
+ * @param report - 入力されたHID_REPORT
+ */
+void USBAuthenticator::parseRequest(HID_REPORT report) {
+    /* CTAP Initialization Packet形式 */
+    // Channel Identifierの取得
+    memcpy(this->req.channelID, report.data, 4);
+    // Command Identifierの取得
+    this->req.command = (unsigned int)report.data[4];
+    // BCNTHの取得
+    this->req.BCNTH = (unsigned int)report.data[5];
+    // BCNTLの取得
+    this->req.BCNTL = (unsigned int)report.data[6];
+
+    /* authenticatorAPIコマンド形式 */
+    // Command Valueの取得
+    this->req.data.commandValue = (unsigned int)report.data[7];
+    // commandParameterの取得
+    this->req.data.commandParameter = new uint8_t[this->req.BCNTL-1];
+    for (int i=0; i<this->req.BCNTL-1; i++) {
+        this->req.data.commandParameter[i] = report.data[8+i];
+    }
+    this->req.requestSerialDebug();
+}
+
+/**
+ * @brief CTAPを実行する
+ */
+void USBAuthenticator::operate() {
+    try {
+        operateCTAPCommand();
+    } catch (std::exception& e) {
+        // TODO:何故かエラー処理をするとうまくcatchできず落ちる
+        Serial.println(e.what());
+    }
+}
+
+/**
+ * @brief CTAPのコマンドに対応した関数を呼び出す
+ */
+void USBAuthenticator::operateCTAPCommand() {
+    switch (this->req.command) { /* Commandに応じた関数を呼び出す */
+        case CTAPHID_MSG:
+            operateMSGCommand(); break;
+        case CTAPHID_CBOR:
+            operateCBORCommand(); break;
+        case CTAPHID_INIT:
+            operateINITCommand(); break;
+        case CTAPHID_PING:
+            operatePINGCommand(); break;
+        case CTAPHID_CANCEL:
+            operateCANCELCommand(); break;
+        case CTAPHID_ERROR:
+            operateERRORCommand(); break;
+        case CTAPHID_KEEPALIVE:
+            operateKEEPALIVECommand(); break;
+        default: /* Commandが存在しない場合 */
+            throw implement_error("Not implement CTAP Command."); break;
+    }
+}
+
+/**
+ * @brief MSGコマンドを実行する
+ */
+void USBAuthenticator::operateMSGCommand() {
+    throw implement_error("Not implement MSG Command.");
+}
+
+/**
+ * @brief CBORコマンドを実行する
+ */
+void USBAuthenticator::operateCBORCommand() {
+    // throw implement_error("Not implement CBOR Command.");
+    if (checkHasParameters(this->req.data.commandValue)) {
+        this->authAPI = new AuthenticatorAPI(this->req.data.commandValue, this->req.data.commandParameter, this->req.BCNTL);
+    } else {
+        this->authAPI = new AuthenticatorAPI(this->req.data.commandValue);
+    }
+
+    try {
+        this->response = this->authAPI->operateCommand();
+        this->response->ResponseSerialDebug();
+    } catch (implement_error& e) {
+        throw implement_error(e.what());
+    }
+}
+
+/**
+ * @brief INITコマンドを実行する
+ */
+void USBAuthenticator::operateINITCommand() {
+    throw implement_error("Not implement INIT Command.");
+}
+
+/**
+ * @brief PINGコマンドを実行する
+ */
+void USBAuthenticator::operatePINGCommand() {
+    throw implement_error("Not implement PING Command.");
+}
+
+/**
+ * @brief CANCELコマンドを実行する
+ */
+void USBAuthenticator::operateCANCELCommand() {
+    throw implement_error("Not implement CANCEL Command.");
+}
+
+/**
+ * @brief ERRORコマンドを実行する
+ */
+void USBAuthenticator::operateERRORCommand() {
+    throw implement_error("Not implement ERROR Command.");
+}
+
+/**
+ * @brief KEEPALIVEコマンドを実行する
+ */ 
+void USBAuthenticator::operateKEEPALIVECommand() {
+    throw implement_error("Not implement KEEPALIVE Command.");
+}

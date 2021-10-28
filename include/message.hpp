@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 // #include <M5StickC.h>
+#include <Arduino.h>
 
 /**
  * @struct Command
@@ -23,6 +24,7 @@ struct Response {
     const uint8_t *responseData;
     unsigned int length = 0;
     ~Response();
+    void ResponseSerialDebug();
 };
 
 /**

@@ -4,6 +4,7 @@
 #include "PluggableUSBHID.h"
 #include "platform/Stream.h"
 #include "PlatformMutex.h"
+#include "ctap.hpp"
 
 namespace arduino {
 
@@ -96,6 +97,24 @@ class USBAuthenticator: public USBHID {
         */
         uint8_t lock_status();
 
+        void operate();
+
+        void parseRequest(HID_REPORT report);
+        void operateCTAPCommand();
+        void operateMSGCommand();
+        void operateCBORCommand();
+        void operateINITCommand();
+        void operatePINGCommand();
+        void operateCANCELCommand();
+        void operateERRORCommand();
+        void operateKEEPALIVECommand();
+
+        bool getWriteFlag();
+        bool getContinuationFlag();
+
+        void setWriteFlag(bool writeFlag);
+        void setContinuationFlag(bool continuationFlag);
+
     protected:
         virtual const uint8_t *configuration_desc(uint8_t index);
     
@@ -103,6 +122,25 @@ class USBAuthenticator: public USBHID {
         uint8_t _lock_status;
         uint8_t _configuration_descriptor[41];
         PlatformMutex _mutex;
+
+        /**
+         * @brief 継続バケットが存在するかのフラグ
+         */
+        bool continuationFlag;
+
+        /**
+         * @brief 認証器処理のフラグ
+         */
+        bool writeFlag;
+
+        /**
+         * @brief Request
+         */
+        Request req;
+
+        AuthenticatorAPI *authAPI;
+
+        Response *response;
 };
 
 }

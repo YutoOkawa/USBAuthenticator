@@ -2,6 +2,7 @@
 #include "USBAuthenticator.h"
 
 void sendTest();
+void parseTest();
 
 USBAuthenticator authenticator;
 HID_REPORT hidReceive;
@@ -14,7 +15,13 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
-  sendTest();
+  // sendTest();
+  // parseTest();
+  bool readResult = authenticator.read(&hidReceive);
+  if (readResult) {
+    authenticator.parseRequest(hidReceive);
+    authenticator.operate();
+  }
   delay(1);
 }
 
@@ -34,5 +41,12 @@ void sendTest() {
     } else {
       Serial.println("failed...");
     }
+  }
+}
+
+void parseTest() {
+  bool readResult = authenticator.read(&hidReceive);
+  if (readResult) {
+    authenticator.parseRequest(hidReceive);
   }
 }

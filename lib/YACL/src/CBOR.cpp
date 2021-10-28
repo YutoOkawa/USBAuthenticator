@@ -561,6 +561,24 @@ bool CBOR::add(int64_t value)
 	}
 }
 
+bool CBOR::add(unsigned int value) {
+	if (value < 0) {
+		return encode_type_num(CBOR_NEGINT, (unsigned int)(-1-value));
+	}
+	else {
+		return encode_type_num(CBOR_UINT, (unsigned int)value);
+	}
+}
+
+bool CBOR::add(int value) {
+	if (value < 0) {
+		return encode_type_num(CBOR_NEGINT, (int)(-1-value));
+	}
+	else {
+		return encode_type_num(CBOR_UINT, (int)value);
+	}
+}
+
 //Caution! This considers a 32bit float and IEEE 754 representation in memory
 bool CBOR::add(float value)
 {

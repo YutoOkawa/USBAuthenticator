@@ -223,7 +223,7 @@ class CBOR
 
 		// ambigousエラーを取り除くために追加
 		bool add(unsigned int value);
-		bool add(int);
+		bool add(int value);
 
 		//! Add a CBOR FLOAT32 at the end of the buffer.
 		/*!
