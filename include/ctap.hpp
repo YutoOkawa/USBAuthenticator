@@ -50,7 +50,7 @@ struct Request {
     /**
      * @var   BCNTL
      * @brief Low part of payload length
-     *        Length:1
+     *        Length:2
      */
     unsigned int BCNTL;
 
@@ -61,9 +61,14 @@ struct Request {
      */
     Command data;
 
+    /**
+     * @brief Request data size
+     */
+    unsigned int dataSize = 0;
+
     ~Request();
 
-    void requestSerialDebug();
+    void SerialDebug();
 };
 
 struct ContinuationPacket {
@@ -88,7 +93,14 @@ struct ContinuationPacket {
      */
     uint8_t *data;
 
+    /**
+     * @brief Continuation data size
+     */
+    unsigned int dataSize = 0;
+
     ~ContinuationPacket();
+
+    void SerialDebug();
 };
 
 void requestSerialDebug(Request request);

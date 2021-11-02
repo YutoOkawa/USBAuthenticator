@@ -100,6 +100,8 @@ class USBAuthenticator: public USBHID {
         void operate();
 
         void parseRequest(HID_REPORT report);
+        void parseContinuationPacket(HID_REPORT report);
+        void connectRequestData();
         void operateCTAPCommand();
         void operateMSGCommand();
         void operateCBORCommand();
@@ -134,12 +136,28 @@ class USBAuthenticator: public USBHID {
         bool writeFlag;
 
         /**
+         * @brief 残り書き込みサイズのカウント
+         */
+        unsigned int writeCount;
+
+        /**
          * @brief Request
          */
-        Request req;
+        Request *req;
 
+        /**
+         * @brief ContinuationPacket
+         */
+        ContinuationPacket *continuation;
+
+        /**
+         * @brief AuthenticatorAPI
+         */
         AuthenticatorAPI *authAPI;
 
+        /**
+         * @brief Response
+         */
         Response *response;
 };
 

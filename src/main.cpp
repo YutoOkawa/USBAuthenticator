@@ -19,8 +19,14 @@ void loop() {
   // parseTest();
   bool readResult = authenticator.read(&hidReceive);
   if (readResult) {
-    authenticator.parseRequest(hidReceive);
-    authenticator.operate();
+    if (!authenticator.getContinuationFlag()) { /* 初期パケットのパース */
+      authenticator.parseRequest(hidReceive);
+    } else { /* 継続パケットのパース */
+      authenticator.parseContinuationPacket(hidReceive);
+    }
+    if (!authenticator.getContinuationFlag()) {
+      authenticator.operate();
+    }
   }
   delay(1);
 }

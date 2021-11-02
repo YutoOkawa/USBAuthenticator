@@ -221,30 +221,83 @@ const uint8_t *USBAuthenticator::configuration_desc(uint8_t index) {
 }
 
 /**
- * @brief 入力パラメータをパースする
+ * @brief 初期パケットをパースする
  * 
  * @param report - 入力されたHID_REPORT
  */
 void USBAuthenticator::parseRequest(HID_REPORT report) {
+    this->req = new Request;
     /* CTAP Initialization Packet形式 */
     // Channel Identifierの取得
-    memcpy(this->req.channelID, report.data, 4);
+    memcpy(this->req->channelID, report.data, 4);
     // Command Identifierの取得
-    this->req.command = (unsigned int)report.data[4];
+    this->req->command = (unsigned int)report.data[4];
     // BCNTHの取得
-    this->req.BCNTH = (unsigned int)report.data[5];
+    this->req->BCNTH = (unsigned int)report.data[5];
     // BCNTLの取得
-    this->req.BCNTL = (unsigned int)report.data[6];
+    // TODO;BCNTLが55以上ならフラグメントパースも行う
+    this->req->BCNTL = (unsigned int)report.data[6] * 16 * 16;
+    this->req->BCNTL = this->req->BCNTL + (unsigned int)report.data[7];
+    this->writeCount = this->req->BCNTL;
+
+    if (this->req->BCNTL > 55) { /* 継続パケットが存在する場合 */
+        this->continuationFlag = true;
+    }
 
     /* authenticatorAPIコマンド形式 */
     // Command Valueの取得
-    this->req.data.commandValue = (unsigned int)report.data[7];
+    this->req->data.commandValue = (unsigned int)report.data[8];
     // commandParameterの取得
-    this->req.data.commandParameter = new uint8_t[this->req.BCNTL-1];
-    for (int i=0; i<this->req.BCNTL-1; i++) {
-        this->req.data.commandParameter[i] = report.data[8+i];
+    this->req->data.commandParameter = new uint8_t[this->req->BCNTL-1];
+    for (int i=0; i<64-9; i++) {
+        if (!(this->writeCount > 0)) {
+            break;
+        }
+        this->req->data.commandParameter[i] = report.data[9+i];
+        this->req->dataSize++;
+        this->writeCount--;
     }
-    this->req.requestSerialDebug();
+    this->req->SerialDebug();
+}
+
+/**
+ * @brief 継続パケットをパースする
+ * 
+ * @param report - 入力されたHID_REPORT
+ */
+void USBAuthenticator::parseContinuationPacket(HID_REPORT report) {
+    this->continuation = new ContinuationPacket;
+    // Channel Identifierの取得
+    memcpy(this->continuation->channelID, report.data, 4);
+    // Packet Sequenceの取得
+    this->continuation->sequence = (unsigned int)report.data[4];
+    // Payload dataの取得
+    this->continuation->data = new uint8_t[64-5];
+    for (int i=0; i<64-5; i++) {
+        if (!(this->writeCount > 0)) {
+            this->continuationFlag = false;
+            break;
+        }
+        this->continuation->data[i] = report.data[5+i];
+        this->continuation->dataSize++;
+        this->writeCount--;
+    }
+    this->continuation->SerialDebug();
+    this->connectRequestData();
+
+    /* 確保したメモリの解放 */
+    delete this->continuation->data;
+    delete this->continuation;
+}
+
+/**
+ * @brief RequestのData部に継続パケットのデータ部を連結する
+ */
+void USBAuthenticator::connectRequestData() {
+    for (int i=0; i<this->continuation->dataSize; i++) {
+        this->req->data.commandParameter[this->req->dataSize] = this->continuation->data[0];
+        this->req->dataSize++;
+    }
 }
 
 /**
@@ -257,13 +310,15 @@ void USBAuthenticator::operate() {
         // TODO:何故かエラー処理をするとうまくcatchできず落ちる
         Serial.println(e.what());
     }
+    delete this->req->data.commandParameter;
+    delete this->req;
 }
 
 /**
  * @brief CTAPのコマンドに対応した関数を呼び出す
  */
 void USBAuthenticator::operateCTAPCommand() {
-    switch (this->req.command) { /* Commandに応じた関数を呼び出す */
+    switch (this->req->command) { /* Commandに応じた関数を呼び出す */
         case CTAPHID_MSG:
             operateMSGCommand(); break;
         case CTAPHID_CBOR:
@@ -295,10 +350,10 @@ void USBAuthenticator::operateMSGCommand() {
  */
 void USBAuthenticator::operateCBORCommand() {
     // throw implement_error("Not implement CBOR Command.");
-    if (checkHasParameters(this->req.data.commandValue)) {
-        this->authAPI = new AuthenticatorAPI(this->req.data.commandValue, this->req.data.commandParameter, this->req.BCNTL);
+    if (checkHasParameters(this->req->data.commandValue)) {
+        this->authAPI = new AuthenticatorAPI(this->req->data.commandValue, this->req->data.commandParameter, this->req->BCNTL);
     } else {
-        this->authAPI = new AuthenticatorAPI(this->req.data.commandValue);
+        this->authAPI = new AuthenticatorAPI(this->req->data.commandValue);
     }
 
     try {
@@ -342,4 +397,20 @@ void USBAuthenticator::operateERRORCommand() {
  */ 
 void USBAuthenticator::operateKEEPALIVECommand() {
     throw implement_error("Not implement KEEPALIVE Command.");
+}
+
+bool USBAuthenticator::getWriteFlag() {
+    return this->writeFlag;
+}
+
+bool USBAuthenticator::getContinuationFlag() {
+    return this->continuationFlag;
+}
+
+void USBAuthenticator::setWriteFlag(bool writeFlag) {
+    this->writeFlag = writeFlag;
+}
+
+void USBAuthenticator::setContinuationFlag(bool continuationFlag) {
+    this->continuationFlag = continuationFlag;
 }

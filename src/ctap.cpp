@@ -4,7 +4,7 @@ Request::~Request() {
 
 }
 
-void Request::requestSerialDebug() {
+void Request::SerialDebug() {
     Serial.print("Channel Identifier:");
     for (int i=0; i<4; i++) {
         Serial.print(String(this->channelID[i], HEX));
@@ -24,7 +24,7 @@ void Request::requestSerialDebug() {
     Serial.println(String(this->data.commandValue, HEX));
 
     Serial.print("Command Parameter:");
-    for (size_t i = 0; i < this->BCNTL-1; i++) {
+    for (size_t i = 0; i < this->dataSize; i++) {
         if (this->data.commandParameter[i] < 0x10) {
             Serial.print("0");
         }
@@ -35,4 +35,26 @@ void Request::requestSerialDebug() {
 
 ContinuationPacket::~ContinuationPacket() {
     
+}
+
+void ContinuationPacket::SerialDebug() {
+    Serial.print("Channel Identifier:");
+    for (int i=0; i<4; i++) {
+        Serial.print(String(this->channelID[i], HEX));
+    }
+    Serial.println("");
+
+    Serial.print("Packet Sequence:");
+    Serial.println(String(this->sequence));
+
+    Serial.print("dataSize:");
+    Serial.println(String(this->dataSize));
+    Serial.print("data:");
+    for(int i=0; i<this->dataSize; i++) {
+        if (this->data[i] < 0x10) {
+            Serial.print("0");
+        }
+        Serial.print(String(this->data[i], HEX));
+    }
+    Serial.println("");
 }
