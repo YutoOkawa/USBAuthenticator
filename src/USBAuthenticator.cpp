@@ -310,6 +310,7 @@ void USBAuthenticator::operate() {
         // TODO:何故かエラー処理をするとうまくcatchできず落ちる
         Serial.println(e.what());
     }
+    sendResponse();
     delete this->req->data.commandParameter;
     delete this->req;
 }
@@ -397,6 +398,96 @@ void USBAuthenticator::operateERRORCommand() {
  */ 
 void USBAuthenticator::operateKEEPALIVECommand() {
     throw implement_error("Not implement KEEPALIVE Command.");
+}
+
+/**
+ * @brief 作成したレスポンスを送信する
+ */
+void USBAuthenticator::sendResponse() {
+    HID_REPORT report;
+    size_t reportLength = 0;
+    size_t responseDataLength = 0;
+    size_t continuationCount = 0;
+    // Responseサイズが55以上だった場合分割送信する
+    if (this->response->length > 55) { // 継続パケットのパケット数を計算
+        continuationCount = ((this->response->length - 55) / 59) + 1;
+    }
+
+    /* Initialize Packetの作成 */
+    // channel identifierの設定(Requestと同じ)
+    for (int i=0; i<4; i++) {
+        report.data[reportLength] = this->req->channelID[i];
+        reportLength++;
+    }
+
+    // command Identifierの設定(Requestと同じ)
+    report.data[reportLength] = this->req->command;
+    reportLength++;
+
+    // BCNTHの設定
+    report.data[reportLength] = 0x00;
+    reportLength++;
+
+    // BCNTLの設定(TODO:255Bytes以上なら最初のバイトにも格納)
+    report.data[reportLength] = 0x00;
+    reportLength++;
+    report.data[reportLength] = this->response->length;
+    reportLength++;
+
+    // Dataの設定
+    report.data[reportLength] = this->response->status;
+    reportLength++;
+    for (int i=0; i<55; i++) {
+        if (responseDataLength > response->length) { /* 格納終了判定 */
+            report.data[reportLength] = 0x00;
+            reportLength++;
+        } else { /* 通常データ格納 */
+            report.data[reportLength] = this->response->responseData[responseDataLength];
+            reportLength++;
+            responseDataLength++;
+        }
+    }
+    // 長さの設定
+    report.length = 64;
+    // 送信
+    if (!send(&report)) {
+        _mutex.unlock();
+    }
+
+    /* Continuation Packetの作成 */
+    for (int i=0; i<continuationCount; i++) {
+        HID_REPORT continuationReport;
+        size_t continuationLength = 0;
+        // channel identifierの設定(Requestと同じ)
+        for (int j=0; j<4; j++) {
+            continuationReport.data[continuationLength] = this->req->channelID[j];
+            continuationLength++;
+        }
+
+        // Packet Sequenceの設定
+        continuationReport.data[continuationLength] = 0x80 + i;
+        continuationLength++;
+
+        // Dataの設定
+        for (int j=0; j<59; j++) { /* 格納終了判定 */
+            if (responseDataLength > response->length) {
+                continuationReport.data[continuationLength] = 0x00;
+                continuationLength++;
+            } else { /* 通常データ格納 */
+                continuationReport.data[continuationLength] = this->response->responseData[responseDataLength];
+                continuationLength++;
+                responseDataLength++;
+            }
+        }
+        // 長さの設定
+        continuationReport.length = 64;
+        // 送信
+        if (!send(&continuationReport)) {
+            _mutex.unlock();
+        }
+    }
+
+    Serial.println("Packet end.");
 }
 
 bool USBAuthenticator::getWriteFlag() {

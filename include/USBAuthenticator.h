@@ -97,11 +97,11 @@ class USBAuthenticator: public USBHID {
         */
         uint8_t lock_status();
 
-        void operate();
-
         void parseRequest(HID_REPORT report);
         void parseContinuationPacket(HID_REPORT report);
         void connectRequestData();
+
+        void operate();
         void operateCTAPCommand();
         void operateMSGCommand();
         void operateCBORCommand();
@@ -110,6 +110,8 @@ class USBAuthenticator: public USBHID {
         void operateCANCELCommand();
         void operateERRORCommand();
         void operateKEEPALIVECommand();
+
+        void sendResponse();
 
         bool getWriteFlag();
         bool getContinuationFlag();
