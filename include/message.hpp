@@ -114,6 +114,7 @@ struct GetAssertionParam {
     static const int KEY_OPTIONS;
     static const int KEY_PIN_AUTH;
     static const int KEY_PIN_PROTOCOL;
+    static const int KEY_POLICY;
 };
 
 /**

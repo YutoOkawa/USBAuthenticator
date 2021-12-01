@@ -12,6 +12,37 @@ using namespace core;
 using namespace B256_28;
 using namespace BN254;
 
+struct AttrNode {
+    /**
+     * @brief 属性名
+     */
+    String attribute;
+
+    /**
+     * @brief 左右のノード情報
+     */
+    AttrNode *left, *right;
+
+    AttrNode();
+
+    AttrNode(String value);
+
+    ~AttrNode();
+
+    void printNode();
+};
+
+struct AttributeOperatorType {
+    static const String OPERATOR_OR;
+    static const String OPERATOR_AND;
+};
+
+void getMSP(MsgPack::arr_t<MsgPack::arr_t<int>> *msp, String policy, String *attributes);
+void recursivefill(AttrNode *node, MsgPack::arr_t<MsgPack::arr_t<int>> *msp, int vector, MsgPack::map_t<String, int> matrix);
+String remove_space(String exp);
+int get_pos_operator(String exp);
+int parse_expression(AttrNode *node);
+
 /* -----Utility------ */
 ECP getG1Element(csprng RNG);
 ECP2 getG2Element(csprng RNG);

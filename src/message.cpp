@@ -231,6 +231,9 @@ const int GetAssertionParam::KEY_PIN_AUTH = 0x06;
 /** @brief PIN protocol version chosen by the client. For this version of the spec, this SHALL be the number 1. */
 const int GetAssertionParam::KEY_PIN_PROTOCOL = 0x07;
 
+/** @brief POLICY */
+const int GetAssertionParam::KEY_POLICY = 0x08;
+
 
 /* ----------------------ClientPINParam---------------------- */
 /** @brief Unsigned Integer. (CBOR major type 0) */

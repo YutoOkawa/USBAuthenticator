@@ -1,5 +1,189 @@
 #include "bn254Utils.hpp"
 
+const String AttributeOperatorType::OPERATOR_OR = "|";
+const String AttributeOperatorType::OPERATOR_AND = "&";
+
+AttrNode::AttrNode() {
+    this->left = nullptr;
+    this->right = nullptr;
+}
+
+AttrNode::AttrNode(String value) {
+    this->attribute = value;
+
+    /* 左右ノードの初期化 */
+    this->left = nullptr;
+    this->right = nullptr;
+}
+
+AttrNode::~AttrNode() {
+    delete this->left;
+    delete this->right;
+}
+
+void AttrNode::printNode() {
+    // Serial.printf("Attribute:%s\n", this->attribute.c_str());
+    Serial.println("child nodes");
+    if (this->left != nullptr) {
+        Serial.println("this->left:");
+        this->left->printNode();
+    } else {
+        Serial.println("this->left nullptr;");
+    }
+    if (this->right != nullptr) {
+        Serial.println("this->right:");
+        this->right->printNode();
+    } else {
+        Serial.println("this->right nullptr;");
+    }
+    Serial.println("-----------------------");
+}
+
+void deleteNode(AttrNode *node) {
+    if (node->left != nullptr) {
+        deleteNode(node->left);
+    }
+
+    if (node->right != nullptr) {
+        deleteNode(node->right);
+    }
+}
+
+/**
+ * @brief monotone span programを実行する
+ * 
+ * @param msp mspのポインタ
+ * @param policy ポリシー
+ * @param attributes 属性集合
+ */
+void getMSP(MsgPack::arr_t<MsgPack::arr_t<int>> *msp, String policy, String *attributes) {
+    MsgPack::map_t<String, int> matrix;
+    for (int i=0; i<sizeof(attributes); i++) {
+        matrix[attributes[i]] = i;
+    }
+    
+    policy = remove_space(policy);
+    AttrNode *root = new AttrNode;
+    root->attribute = policy;
+
+    if (parse_expression(root) < 0) {
+        Serial.println("error");
+    }
+    root->printNode();
+
+    recursivefill(root, msp, 1, matrix);
+    deleteNode(root);
+    delete root;
+    for (int i=0; i<msp->size(); i++) {
+        while(msp->at(i).size() < 2) {
+            msp->at(i).push_back(0);
+        }
+    }
+}
+
+/**
+ * @brief mspを再帰呼び出しで生成する
+ * 
+ * @param node ルートノード
+ * @param msp mspのポインタ
+ * @param vector 入力する値
+ * @param matrix 属性集合のindex表
+ */
+void recursivefill(AttrNode* node, MsgPack::arr_t<MsgPack::arr_t<int>> *msp, int vector, MsgPack::map_t<String, int> matrix) {
+    if (node->attribute == AttributeOperatorType::OPERATOR_OR) {
+        recursivefill(node->left, msp, vector, matrix);
+        recursivefill(node->right, msp, vector, matrix);
+    } else if (node->attribute == AttributeOperatorType::OPERATOR_AND) {
+        // TODO:AND実装
+    } else {
+        String attribute = node->attribute;
+        msp->at(matrix[attribute]).push_back(vector);
+    }
+}
+
+/**
+ * @brief 文字列の空白を取り除く
+ */
+String remove_space(String exp) {
+    String src = "";
+    for (int i=0; i<exp.length(); i++) {
+        char tmp = exp.charAt(i);
+        if (tmp == ' ') {
+            src += "";
+        } else {
+            src += tmp;
+        }
+    }
+    return src;
+}
+
+/**
+ * @brief 一番右側の演算子の位置を返す
+ */
+int get_pos_operator(String exp) {
+    int pos_operator = -1;
+
+    if (!exp) {
+        return pos_operator;
+    }
+
+    for (int i=0; i<exp.length(); i++) {
+        if (exp.charAt(i) == '|' || exp.charAt(i) == '&') {
+            pos_operator = i;
+        }
+    }
+
+    return pos_operator;
+}
+
+int parse_expression(AttrNode *node) {
+    int pos_operator;
+    size_t len;
+
+    if (!node) {
+        return -1;
+    }
+    pos_operator = get_pos_operator(node->attribute);
+
+    /* 属性のみノードの場合 */
+    if (pos_operator == -1) {
+        node->left = nullptr;
+        node->right = nullptr;
+        return 0;
+    }
+
+    len = node->attribute.length();
+
+    /* 不正な演算位置の場合の検出 */
+    if (pos_operator == 0 || (len-1) == pos_operator) {
+        return -1;
+    }
+
+    /* 左右式の分割 */
+    node->left = new AttrNode;
+    node->right = new AttrNode;
+
+    if (!node->left || !node->right) { /* 正しく左右ノードを確保できなかった場合 */
+        return -1;
+    }
+
+    /* pos_operator以前の部分をleftに格納する */
+    node->left->attribute = node->attribute.substring(0, pos_operator);
+    if (parse_expression(node->left) < 0) {
+        return -1;
+    }
+
+    /* pos_operator以降の部分をrightに格納する */
+    node->right->attribute = node->attribute.substring(pos_operator+1, len);
+    if (parse_expression(node->right) < 0) {
+        return -1;
+    }
+
+    /* 演算子の格納 */
+    node->attribute = node->attribute.charAt(pos_operator);
+    return 0;
+}
+
 /**
  * @brief G1の要素をランダムに返す
  * 

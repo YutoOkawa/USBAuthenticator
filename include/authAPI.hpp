@@ -175,6 +175,11 @@ struct ParsedGetAssertionParams {
     uint8_t *hash;
 
     /**
+     * @brief policy - String
+     */
+    String policy;
+
+    /**
      * @brief request data of CBOR - CBOR
      */
     CBOR data;
@@ -188,6 +193,11 @@ struct ParsedGetAssertionParams {
      * @brief clietnDataHash of CBOR - CBOR
      */
     CBOR cbor_clientDataHash;
+
+    /**
+     * @brief policy of CBOR - CBOR
+     */
+    CBOR cbor_policy;
 
     /**
      * @brief Destroy the Parsed Make Credential Params object
