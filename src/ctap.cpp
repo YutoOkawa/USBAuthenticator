@@ -15,10 +15,10 @@ void Request::SerialDebug() {
     Serial.println(String(this->command, HEX));
 
     Serial.print("BCNTH:");
-    Serial.println(String(this->BCNTH, HEX));
+    Serial.println(String(this->BCNTH));
 
     Serial.print("BCNTL:");
-    Serial.println(String(this->BCNTL, HEX));
+    Serial.println(String(this->BCNTL));
 
     Serial.print("Command Value:");
     Serial.println(String(this->data.commandValue, HEX));

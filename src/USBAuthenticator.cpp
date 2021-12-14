@@ -257,7 +257,7 @@ void USBAuthenticator::parseRequest(HID_REPORT report) {
         this->req->dataSize++;
         this->writeCount--;
     }
-    this->req->SerialDebug();
+    // this->req->SerialDebug();
 }
 
 /**
@@ -282,7 +282,7 @@ void USBAuthenticator::parseContinuationPacket(HID_REPORT report) {
         this->continuation->dataSize++;
         this->writeCount--;
     }
-    this->continuation->SerialDebug();
+    // this->continuation->SerialDebug();
     this->connectRequestData();
 
     /* 確保したメモリの解放 */
@@ -295,7 +295,7 @@ void USBAuthenticator::parseContinuationPacket(HID_REPORT report) {
  */
 void USBAuthenticator::connectRequestData() {
     for (int i=0; i<this->continuation->dataSize; i++) {
-        this->req->data.commandParameter[this->req->dataSize] = this->continuation->data[0];
+        this->req->data.commandParameter[this->req->dataSize] = this->continuation->data[i];
         this->req->dataSize++;
     }
 }

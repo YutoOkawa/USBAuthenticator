@@ -423,10 +423,12 @@ Response *AuthenticatorAPI::authenticatorMakeCredential(ParsedMakeCredentialPara
     }
     /* 検証項目:ここでいうcredentialIDとはWebAuthnの返り値に含まれるIDと同一なのか？ */
     /* 検証結果:同一であることが判明 -> Arduino内部で生成し返り値データとして送信？ */
+    srand((unsigned) time(NULL)); /* TODO:一定のseed値を渡してしまっている？ */
     for (size_t i=0; i<64; i++) {
         /* 乱数値の生成 */
         // uint32_t randomNumber = esp_random();
         uint32_t randomNumber;
+        randomNumber = rand();
         authData[authData_pointer] = (uint8_t)(randomNumber);
         authData_pointer++;
     }
