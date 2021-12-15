@@ -235,7 +235,6 @@ void USBAuthenticator::parseRequest(HID_REPORT report) {
     // BCNTHの取得
     this->req->BCNTH = (unsigned int)report.data[5];
     // BCNTLの取得
-    // TODO;BCNTLが55以上ならフラグメントパースも行う
     this->req->BCNTL = (unsigned int)report.data[6] * 16 * 16;
     this->req->BCNTL = this->req->BCNTL + (unsigned int)report.data[7];
     this->writeCount = this->req->BCNTL;
@@ -428,10 +427,10 @@ void USBAuthenticator::sendResponse() {
     report.data[reportLength] = 0x00;
     reportLength++;
 
-    // BCNTLの設定(TODO:255Bytes以上なら最初のバイトにも格納)
-    report.data[reportLength] = 0x00;
+    // BCNTLの設定
+    report.data[reportLength] = (uint8_t)(this->response->length/256);
     reportLength++;
-    report.data[reportLength] = this->response->length;
+    report.data[reportLength] = (uint8_t)(this->response->length%256);
     reportLength++;
 
     // Dataの設定
@@ -455,7 +454,7 @@ void USBAuthenticator::sendResponse() {
     }
 
     /* Continuation Packetの作成 */
-    for (int i=0; i<continuationCount; i++) {
+    for (size_t i=0; i<continuationCount; i++) {
         HID_REPORT continuationReport;
         size_t continuationLength = 0;
         // channel identifierの設定(Requestと同じ)
