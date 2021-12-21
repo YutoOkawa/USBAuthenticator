@@ -356,11 +356,25 @@ void USBAuthenticator::operateCBORCommand() {
         this->authAPI = new AuthenticatorAPI(this->req->data.commandValue);
     }
 
+    /* 鍵情報の復元 */
+    if (this->authAPI->getCommand() == AuthenticatorAPICommandParam::COMMAND_GETASSERTION) {
+        this->authAPI->setTPK(this->getTPK());
+        this->authAPI->setAPK(this->getAPK());
+        this->authAPI->setSKA(this->getSKA());
+    }
+
     try {
         this->response = this->authAPI->operateCommand();
         this->response->ResponseSerialDebug();
     } catch (implement_error& e) {
         throw implement_error(e.what());
+    }
+
+    /* 鍵情報の格納 */
+    if (this->authAPI->getCommand() == AuthenticatorAPICommandParam::COMMAND_MAKECREDENTIAL) {
+        setTPK(this->authAPI->getTPK());
+        setAPK(this->authAPI->getAPK());
+        setSKA(this->authAPI->getSKA());
     }
 }
 
@@ -497,10 +511,38 @@ bool USBAuthenticator::getContinuationFlag() {
     return this->continuationFlag;
 }
 
+AuthenticatorAPI *USBAuthenticator::getAuthAPI() {
+    return this->authAPI;
+}
+
+TPK *USBAuthenticator::getTPK() {
+    return this->tpk;
+}
+
+APK *USBAuthenticator::getAPK() {
+    return this->apk;
+}
+
+SKA *USBAuthenticator::getSKA() {
+    return this->ska;
+}
+
 void USBAuthenticator::setWriteFlag(bool writeFlag) {
     this->writeFlag = writeFlag;
 }
 
 void USBAuthenticator::setContinuationFlag(bool continuationFlag) {
     this->continuationFlag = continuationFlag;
+}
+
+void USBAuthenticator::setTPK(TPK *tpk) {
+    this->tpk = tpk;
+}
+
+void USBAuthenticator::setAPK(APK *apk) {
+    this->apk = apk;
+}
+
+void USBAuthenticator::setSKA(SKA *ska) {
+    this->ska = ska;
 }

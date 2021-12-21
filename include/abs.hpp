@@ -16,6 +16,7 @@ class TPK {
         ~TPK();
 
         void parse();
+        void SerialDebug();
 
         ECP *getG();
         MsgPack::arr_t<ECP2> getH();
@@ -41,6 +42,7 @@ class APK {
         ~APK();
 
         void parse();
+        void SerialDebug();
         
         ECP2 *getA0();
         MsgPack::arr_t<ECP2> getA();
@@ -67,6 +69,7 @@ class SKA {
         ~SKA();
 
         void parse();
+        void SerialDebug();
 
         ECP *getKBase();
         ECP *getK0();
@@ -146,13 +149,7 @@ struct SignatureParams {
      * @brief signature data.
      */
     Signature *signature;
-
-    /**
-     * @var xBinarySemaphore
-     * @brief Binary Semaphore
-     */
-    // SemaphoreHandle_t *xBinarySemaphore;
 };
 
-void generateSign(void *pvParameters);
+void generateSign(SignatureParams *sigParams);
 #endif

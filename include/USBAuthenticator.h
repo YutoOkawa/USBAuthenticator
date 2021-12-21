@@ -115,9 +115,16 @@ class USBAuthenticator: public USBHID {
 
         bool getWriteFlag();
         bool getContinuationFlag();
+        AuthenticatorAPI *getAuthAPI();
+        TPK *getTPK();
+        APK *getAPK();
+        SKA *getSKA();
 
         void setWriteFlag(bool writeFlag);
         void setContinuationFlag(bool continuationFlag);
+        void setTPK(TPK *tpk);
+        void setAPK(APK *apk);
+        void setSKA(SKA *ska);
 
     protected:
         virtual const uint8_t *configuration_desc(uint8_t index);
@@ -161,6 +168,21 @@ class USBAuthenticator: public USBHID {
          * @brief Response
          */
         Response *response;
+
+        /**
+         * @brief tpk
+         */
+        TPK *tpk;
+
+        /**
+         * @brief apk
+         */
+        APK *apk;
+
+        /**
+         * @brief ska
+         */
+        SKA *ska;
 };
 
 }

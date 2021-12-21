@@ -69,7 +69,7 @@ void getMSP(MsgPack::arr_t<MsgPack::arr_t<int>> *msp, String policy, String *att
     if (parse_expression(root) < 0) {
         Serial.println("error");
     }
-    root->printNode();
+    // root->printNode();
 
     recursivefill(root, msp, 1, matrix);
     deleteNode(root);
@@ -182,6 +182,75 @@ int parse_expression(AttrNode *node) {
     /* 演算子の格納 */
     node->attribute = node->attribute.charAt(pos_operator);
     return 0;
+}
+
+/**
+ * @brief OCTETを出力する
+ *
+ * @param o - octet
+ */
+void outputOCT(octet *o) {
+    int i;
+    unsigned char ch;
+    for (i=0; i<o->len; i++) {
+        ch = o->val[i];
+        if (o->val[i] < 0x10) {
+            Serial.print("0");
+        }
+        Serial.print(String(ch, HEX));
+    }
+    Serial.println("");
+}
+
+/**
+ * @brief BIGを16進数で出力する
+ * 
+ * @param a ーBIG
+ */
+void outputBIG(BIG *a) {
+    if (a == nullptr) {
+        return ;
+    } else {
+        Serial.print("Valid Pointer:");
+    }
+    char s[MODBYTES_B256_28];
+    octet S = {0, sizeof(s), s};
+    BIG_toBytes(S.val, *a);
+    outputOCT(&S);
+}
+
+/**
+ * @brief ECPを16進数で出力する
+ * 
+ * @param g - ECP
+ */
+void outputECP(ECP *g) {
+    if (g == nullptr) {
+        return ;
+    } else {
+        Serial.print("Valid Pointer:");
+    }
+    char test[MODBYTES_B256_28+1];
+    octet TEST = {0, sizeof(test), test};
+    ECP_toOctet(&TEST, g, true); /* ここで死ぬ */
+    outputOCT(&TEST);
+}
+
+/**
+ * @brief ECP2を16進数で出力する
+ * 
+ * @param h - ECP2
+ */
+void outputECP2(ECP2 *h) {
+    if (h == nullptr) {
+        return ;
+    } else {
+        Serial.print("Valid Pointer:");
+    }
+    char test[2*MODBYTES_B256_28+1];
+    octet TEST = {0, sizeof(test), test};
+    ECP2_toOctet(&TEST, h, true);
+    outputOCT(&TEST);
 }
 
 /**

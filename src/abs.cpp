@@ -17,28 +17,6 @@ void test() {
     ECP_output(&test1);
 }
 
-/**
- * @brief BIGを16進数で出力する
- * 
- * @param a ーBIG
- */
-void outputBIG(BIG a) {
-    char s[MODBYTES_B256_28];
-    octet S = {0, sizeof(s), s};
-    BIG_toBytes(S.val, a);
-    for (size_t i=0; i<MODBYTES_B256_28; i++) {
-        // Serial.printf("%.2x", S.val[i]);
-    }
-    // Serial.println("");
-}
-
-void outputECP(ECP g) {
-    char test[MODBYTES_B256_28+1];
-    octet TEST = {0, sizeof(test), test};
-    ECP_toOctet(&TEST, &g, true);
-    OCT_output(&TEST);    
-}
-
 /* ----------------------TPK---------------------- */
 TPK::TPK() {
 
@@ -68,6 +46,21 @@ void TPK::parse() {
     for (int i=0; i<this->cbor_tpk.n_elements()-2; i++) {
         String key = "h" + String(i);
         this->h.push_back(*parseECP2Element(this->cbor_tpk, key.c_str()));
+    }
+}
+
+/**
+ * @brief tpkを出力する
+ */
+void TPK::SerialDebug() {
+    Serial.print("tpk->g:");
+    outputECP(&this->g);
+
+    int count = 1;
+    for (auto& e : this->h) {
+        Serial.print("tpk->h"+String(count)+":");
+        outputECP2(&e);
+        count++;
     }
 }
 
@@ -176,6 +169,31 @@ void APK::parse() {
         this->B.push_back(*parseECP2Element(this->cbor_apk, Bkey.c_str()));
     }
     parseECPElement(&this->C, this->cbor_apk, "C");
+}
+
+/**
+ * @brief apkを出力する
+ */
+void APK::SerialDebug() {
+    Serial.print("apk->A0:");
+    outputECP2(&this->A0);
+
+    int count = 1;
+    for (auto& e : this->A) {
+        Serial.print("apk->A"+String(count)+":");
+        outputECP2(&e);
+        count++;
+    }
+
+    count = 1;
+    for (auto& e : this->B) {
+        Serial.print("apk->B"+String(count)+":");
+        outputECP2(&e);
+        count++;
+    }
+
+    Serial.print("apk->C:");
+    outputECP(&this->C);
 }
 
 /**
@@ -310,6 +328,25 @@ void SKA::parse() {
 }
 
 /**
+ * @brief skaを出力する
+ */
+void SKA::SerialDebug() {
+    Serial.print("ska->KBase:");
+    outputECP(&this->KBase);
+
+    Serial.print("ska->K0:");
+    outputECP(&this->K0);
+
+    for (int i=0; i<this->K.size(); i++) {
+        String key = "K" + String(i+2);
+        if (this->K.count(key) != 0) {
+            Serial.print("ska->"+key+":");
+            outputECP(&this->K[key]);
+        }
+    }
+}
+
+/**
  * @brief getter
  * 
  * @return ECP* KBaseを返す
@@ -386,7 +423,7 @@ void SKA::setCBOR(CBOR cbor_ska) {
  * @return Signature 署名情報
  */
 // TODO:署名生成方法をコア任せにしない変更
-void generateSign(void *pvParameters) {
+void generateSign(SignatureParams *sigParams) {
     String attributes[] = {"USER", "PARENTS", "GUARDIANSHIP", "A"};
     BIG rd;
 
@@ -395,17 +432,17 @@ void generateSign(void *pvParameters) {
     /* mspの生成 */
     /* msp本体は配列の1番目から */
     MsgPack::arr_t<MsgPack::arr_t<int>> msp(sizeof(attributes)/sizeof(attributes[0]), MsgPack::arr_t<int>(1));
-    getMSP(&msp, ((SignatureParams *)pvParameters)->policy, attributes);
+    getMSP(&msp, sigParams->policy, attributes);
 
     /* 位数の設定 */
     BIG_rcopy(rd, CURVE_Order);
     // outputBIG(rd);
 
     /* 署名対象データの生成 */
-    size_t length = ((SignatureParams *)pvParameters)->signDataLength + ((SignatureParams *)pvParameters)->policy.length();
+    size_t length = sigParams->signDataLength + sigParams->policy.length();
     char *sign_data = new char[length];
-    memcpy(sign_data, ((SignatureParams *)pvParameters)->signData, length);
-    memcpy(sign_data+((SignatureParams *)pvParameters)->signDataLength, ((SignatureParams *)pvParameters)->policy.c_str(), ((SignatureParams *)pvParameters)->policy.length());
+    memcpy(sign_data, sigParams->signData, length);
+    memcpy(sign_data+sigParams->signDataLength, sigParams->policy.c_str(), sigParams->policy.length());
 
     /* ハッシュ値生成 */
     BIG mu;
@@ -414,48 +451,52 @@ void generateSign(void *pvParameters) {
 
     /* r_{0}をランダムに選ぶ */
     BIG r0;
-    BIG_randtrunc(r0, rd, 2 * CURVE_SECURITY_BN254, &((SignatureParams *)pvParameters)->RNG);
+    BIG_randtrunc(r0, rd, 2 * CURVE_SECURITY_BN254, &sigParams->RNG);
 
     int32_t *rlist[msp.size()];
     BIG r;
     for (size_t i=0; i<msp.size(); i++) {
         // BIG r;
         rlist[i] = new int32_t;
-        BIG_randtrunc(r, rd, 2* CURVE_SECURITY_BN254, &((SignatureParams *)pvParameters)->RNG);
+        BIG_randtrunc(r, rd, 2* CURVE_SECURITY_BN254, &sigParams->RNG);
         rlist[i] = r;
     }
 
     /* 署名値の計算 */
+    Serial.println("Signature:Y");
     ECP Y; // Y = r[0] * KBase
-    ECP_copy(&Y, ((SignatureParams *)pvParameters)->ska->getKBase());
+    ECP_copy(&Y, sigParams->ska->getKBase());
     PAIR_G1mul(&Y, r0);
-    ((SignatureParams *)pvParameters)->signature->setY(Y);
+    sigParams->signature->setY(Y);
 
+    Serial.println("Signature:W");
     ECP W; // W = r[0] * K0
-    ECP_copy(&W, ((SignatureParams *)pvParameters)->ska->getK0());
+    ECP_copy(&W, sigParams->ska->getK0());
     PAIR_G1mul(&W, r0);
-    ((SignatureParams *)pvParameters)->signature->setW(W);
+    sigParams->signature->setW(W);
 
     // S_{i} = (K_{u(i)}^ui)^r0 * (Cg^μ)^r_{i}
+    Serial.println("Signature:S");
     for (size_t i=0; i<msp.size(); i++) {
         ECP Si; // multi = r_{i} * (C + μg)
-        ECP_copy(&Si, ((SignatureParams *)pvParameters)->tpk->getG());
+        ECP_copy(&Si, sigParams->tpk->getG());
         PAIR_G1mul(&Si, mu);
-        ECP_add(&Si, ((SignatureParams *)pvParameters)->apk->getC());
+        ECP_add(&Si, sigParams->apk->getC());
         PAIR_G1mul(&Si, rlist[i]);
 
         // ユーザ秘密鍵の検索 - 存在している場合のみ処理を行う
         String key = "K" + String(i+2);
-        if (((SignatureParams *)pvParameters)->ska->getK().count(key) != 0) { /* キー値が存在している場合 */
+        if (sigParams->ska->getK().count(key) != 0) { /* キー値が存在している場合 */
             ECP rK; // K_{u(i)}^r0
-            ECP_copy(&rK, &((SignatureParams *)pvParameters)->ska->getK()[key]);
+            ECP_copy(&rK, &sigParams->ska->getK()[key]);
             PAIR_G1mul(&rK, r0);
             ECP_add(&Si, &rK);
         }
-        ((SignatureParams *)pvParameters)->signature->setS(Si);
+        sigParams->signature->setS(Si);
     }
 
     // P_{j} = \prod i=1~l (Aj+Bj^u(i))^Mij*ri
+    Serial.println("Signature:P");
     for (size_t j=1; j<msp.at(0).size()+1; j++) {
         ECP2 Pj;
         for (size_t i=1; i<msp.size()+1; i++) {
@@ -463,10 +504,10 @@ void generateSign(void *pvParameters) {
             BIG ui;
             BIG mij;
             BIG exp; // Mji*ri
-            ECP2_copy(&base, &((SignatureParams *)pvParameters)->apk->getB().at(j-1)); // base<-Bj
+            ECP2_copy(&base, &sigParams->apk->getB().at(j-1)); // base<-Bj
             convertInt(ui, i+1); // ui<-i
             PAIR_G2mul(&base, ui); // Bj^u(i)
-            ECP2_add(&base, &((SignatureParams *)pvParameters)->apk->getA().at(j-1)); // Aj+Bj^u(i)
+            ECP2_add(&base, &sigParams->apk->getA().at(j-1)); // Aj+Bj^u(i)
             convertInt(mij, msp.at(i-1).at(j)); // exp<-Mij(j=0はダミーデータ)
             BIG_modmul(exp, mij, rlist[i-1], rd); // exp<-Mji*ri
             PAIR_G2mul(&base, exp); // (Aj+Bj^u(i))^Mij*ri
@@ -478,11 +519,9 @@ void generateSign(void *pvParameters) {
                 
             }
         }
-        ((SignatureParams *)pvParameters)->signature->setP(Pj);
+        sigParams->signature->setP(Pj);
     }
     stop(start_time);
-    // xSemaphoreGive(*((SignatureParams *)pvParameters)->xBinarySemaphore);
-    // vTaskDelete(NULL);
 }
 
 Signature ::Signature() {

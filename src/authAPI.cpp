@@ -544,33 +544,23 @@ Response *AuthenticatorAPI::authenticatorGetAssertion(ParsedGetAssertionParams *
     csprng RNG;
     octet RAW = {0, sizeof(raw), raw};
     RAW.len = 100;
-    // for (int i=0; i<100; i++) RAW.val[i] = esp_random();
+    srand(time(NULL));
+    for (int i=0; i<100; i++) RAW.val[i] = rand();
     CREATE_CSPRNG(&RNG, &RAW);
 
     /* 署名生成 */
     Signature *signature = new Signature;
-    // SemaphoreHandle_t xBinarySemaphore = xSemaphoreCreateBinary();
-    // SignatureParams sigParams = {
-    //     this->tpk, /* Trustee Public Key */
-    //     this->apk, /* Public Key */
-    //     this->ska, /* User Secret Key */
-    //     signData,  /* signData */
-    //     authData_length+params->cbor_clientDataHash.get_bytestring_len(), /* signData length */
-    //     params->policy, /* ABS Policy */
-    //     RNG, /* random generator */
-    //     signature, /* signature */
-    //     &xBinarySemaphore
-    // };
-    // xTaskCreateUniversal(
-    //     generateSign,
-    //     "generateSign",
-    //     65536,
-    //     (void *)&sigParams,
-    //     3,
-    //     NULL,
-    //     1
-    // );
-    // xSemaphoreTake(xBinarySemaphore, portMAX_DELAY);
+    SignatureParams sigParams = {
+        this->tpk, /* Trustee Public Key */
+        this->apk, /* Public Key */
+        this->ska, /* User Secret Key */
+        signData,  /* signData */
+        authData_length+params->cbor_clientDataHash.get_bytestring_len(), /* signData length */
+        params->policy, /* ABS Policy */
+        RNG, /* random generator */
+        signature, /* signature */
+    };
+    generateSign(&sigParams);
 
     /* 署名データのバイト変換 */
     CBORPair cbor_signature = CBORPair(100);

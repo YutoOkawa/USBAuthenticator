@@ -44,6 +44,10 @@ int get_pos_operator(String exp);
 int parse_expression(AttrNode *node);
 
 /* -----Utility------ */
+void outputOCT(octet *o);
+void outputBIG(BIG *a);
+void outputECP(ECP *g);
+void outputECP2(ECP2 *h);
 ECP getG1Element(csprng RNG);
 ECP2 getG2Element(csprng RNG);
 void parseECPElement(ECP *elem, CBOR cbor, String name);
