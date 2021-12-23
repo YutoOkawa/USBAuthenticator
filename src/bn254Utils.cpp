@@ -414,7 +414,7 @@ void createHash(char *msg, size_t length, BIG *mu) {
  * @param number 数字
  * @return BIG* BIG型の数字表現
  */
-int32_t *convertInt(int32_t *big_number, int int_number) {
+void convertInt(int32_t *big_number, int int_number) {
     BIG one;
 
     BIG_one(one);
@@ -427,11 +427,14 @@ int32_t *convertInt(int32_t *big_number, int int_number) {
 
 unsigned long start() {
     unsigned long start_time = micros();
+    // unsigned long start_time = millis();
     return start_time;
 }
 
 void stop(unsigned long start_time) {
+    char buff[64];
     unsigned long end_time = micros();
-    // Serial.printf("%lu milli seconds\n", (end_time - start_time) / 1000);
-    // Serial.printf("%lu milli seconds\n", (end_time - start_time));
+    // unsigned long end_time = millis();
+    sprintf(buff, "%lu micro seconds", (end_time - start_time));
+    Serial.println(buff);
 }

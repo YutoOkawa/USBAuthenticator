@@ -463,25 +463,25 @@ void generateSign(SignatureParams *sigParams) {
     }
 
     /* 署名値の計算 */
-    Serial.println("Signature:Y");
     ECP Y; // Y = r[0] * KBase
     ECP_copy(&Y, sigParams->ska->getKBase());
     PAIR_G1mul(&Y, r0);
     sigParams->signature->setY(Y);
 
-    Serial.println("Signature:W");
     ECP W; // W = r[0] * K0
     ECP_copy(&W, sigParams->ska->getK0());
     PAIR_G1mul(&W, r0);
     sigParams->signature->setW(W);
 
     // S_{i} = (K_{u(i)}^ui)^r0 * (Cg^μ)^r_{i}
-    Serial.println("Signature:S");
+    ECP muC; // C + μg
+    ECP_copy(&muC, sigParams->tpk->getG());
+    PAIR_G1mul(&muC, mu);
+    ECP_add(&muC, sigParams->apk->getC());
+
     for (size_t i=0; i<msp.size(); i++) {
         ECP Si; // multi = r_{i} * (C + μg)
-        ECP_copy(&Si, sigParams->tpk->getG());
-        PAIR_G1mul(&Si, mu);
-        ECP_add(&Si, sigParams->apk->getC());
+        ECP_copy(&Si, &muC);
         PAIR_G1mul(&Si, rlist[i]);
 
         // ユーザ秘密鍵の検索 - 存在している場合のみ処理を行う
@@ -496,8 +496,7 @@ void generateSign(SignatureParams *sigParams) {
     }
 
     // P_{j} = \prod i=1~l (Aj+Bj^u(i))^Mij*ri
-    Serial.println("Signature:P");
-    for (size_t j=1; j<msp.at(0).size()+1; j++) {
+    for (size_t j=1; j<msp.at(0).size(); j++) {
         ECP2 Pj;
         for (size_t i=1; i<msp.size()+1; i++) {
             ECP2 base;
